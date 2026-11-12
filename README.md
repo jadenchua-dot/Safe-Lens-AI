@@ -35,4 +35,4 @@ Push the files to a repository, then go to Settings, Pages, and choose the main 
 
 ## AI use declaration
 
-This project was built with AI assistance (Claude by Anthropic), through prompting and iteration. State this in your submission or portfolio wherever your school, hackathon or employer requires it.
+This project was built with AI assistance (Claude by Anthropic), through prompting and iteration. 
