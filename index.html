@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SafeLens AI</title>
+<meta name="description" content="Prototype online-safety companion for young people: blurs harmful messages, explains the risk and helps them escalate.">
 <link rel="stylesheet" href="style.css"></head><body><main>
 <h1>SafeLens AI <span class="mu">prototype</span></h1>
 <div class="mu">Scan, explain, recommend, escalate. Harmful messages are hidden until you enter your password.</div>
@@ -9,19 +10,19 @@
 
 <div class="card" id="setup" hidden><h2>Set your reveal password</h2>
 <div class="mu">You’ll need it to view anything SafeLens hides. Stored on this device as a hash.</div>
-<div class="row"><input type="password" id="pw1" placeholder="Choose a password (4+ characters)"><button class="p" id="pwSet">Save</button></div></div>
+<div class="row"><input type="password" id="pw1" placeholder="Choose a password (4+ characters)" aria-label="Choose a reveal password" autocomplete="new-password"><button class="p" id="pwSet">Save</button></div></div>
 
 <div class="card"><h2>Incoming chat (simulated)</h2>
 <div class="mu">A web page can’t read WhatsApp. This simulates the inbox so you can test the full flow. Type as the sender, or load a sample.</div>
-<div class="row"><input type="text" id="inp" placeholder="Type a message you’d receive…"><button class="p" id="send">Receive</button><button id="sample">Sample</button></div>
-<div id="chat"></div></div>
+<div class="row"><input type="text" id="inp" placeholder="Type a message you’d receive…" aria-label="Message to receive"><button class="p" id="send">Receive</button><button id="sample">Sample</button></div>
+<div id="chat" aria-live="polite"></div></div>
 
 <div class="card"><h2>Evidence vault</h2><div class="mu">Timestamped, hashed text records. Never save sexual images of minors; report those to the Online Safety Commission or police instead.</div>
 <div id="vault"></div>
-<div class="row"><select id="to"><option>Parent or guardian</option><option>School staff</option><option>Online Safety Commission (osc.gov.sg)</option></select><button id="exp">Build escalation summary</button></div>
+<div class="row"><select id="to" aria-label="Send the summary to"><option>Parent or guardian</option><option>School staff</option><option>Online Safety Commission (osc.gov.sg)</option></select><button id="exp">Build escalation summary</button></div>
 <pre id="sum" class="mono" style="white-space:pre-wrap"></pre></div>
 <div class="mu">Need help now? Samaritans of Singapore: 1767. Learned reports are anonymised word patterns, never names or numbers.</div>
 </main>
-<dialog id="dlg"><h2>Enter password to view</h2><input type="password" id="pw2"><div class="mu" id="err" style="color:var(--rd)"></div>
+<dialog id="dlg" aria-labelledby="dlgT"><h2 id="dlgT">Enter password to view</h2><input type="password" id="pw2" aria-label="Reveal password" autocomplete="current-password"><div class="mu" id="err" style="color:var(--rd)" role="alert"></div>
 <div class="row"><button id="ok" class="p">View</button><button id="no">Cancel</button></div></dialog>
 <script src="app.js" defer></script></body></html>

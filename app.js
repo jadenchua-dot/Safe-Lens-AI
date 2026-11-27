@@ -15,6 +15,8 @@ const CATS=[
 ["Bullying or abuse",.6,/\b(loser|ugly|stupid|worthless|freak|nobody likes you|go away|shut up)\b/,"This message is meant to hurt or isolate you. You don’t deserve this.",["Don’t reply in anger.","Block, save evidence and tell someone you trust."]],
 ["Self-harm language",.9,/(kill myself|want to die|end it all|hurt myself|kys|go die)/,"This message mentions self-harm or telling someone to hurt themselves.",["Reach out to someone now.","Samaritans of Singapore: 1767."]]];
 const norm=t=>t.replace(/[’‘]/g,"'").toLowerCase();
+// AI replies are untrusted text: escape before putting them into HTML
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const tok=t=>norm(t).replace(/https?:\S+/g," <url> ").replace(/\S+@\S+/g," <email> ").replace(/\d+/g," <n> ").split(/[^a-z<>']+/).filter(w=>w.length>1);
 let reports=[],localMode=true,db=null,pw=null,msgs=[],vault=[];
 const SEED=[["dont tell your parents about us","harmful"],["send me a pic of you","harmful"],["meet me downstairs alone","harmful"],["i want to touch you","harmful"],["you are worthless nobody likes you","harmful"],["i hate them they are subhuman","harmful"],["give me your otp now","harmful"],["you won a prize claim it now","harmful"],["my number is 91234567 call me","harmful"],["or i will leak your photos","harmful"],["come to my house tonight","harmful"],["you are so pretty and mature it is our little secret","harmful"],["go kill yourself","harmful"],["send nudes","harmful"],["are we meeting for lunch tomorrow","safe"],["did you finish the homework","safe"],["happy birthday hope you have a great day","safe"],["see you at school","safe"],["thanks for helping me with the project","safe"],["what time is the football match","safe"],["can you send me the notes","safe"],["mum says dinner is ready call you later","safe"]].map(([s,l])=>({t:tok(s).join(" "),label:l}));
@@ -42,17 +44,17 @@ function render(){const c=$("chat");c.innerHTML="";
    if(!m.shown)B("View (password)",()=>ask(i),"p");else B("Hide again",()=>{m.shown=false;render()});
    if(m.shown||m.open){}
    B(m.open?"Close explanation":"Explain and advise",()=>{m.open=!m.open;render()});
-   if(m.open){const e=document.createElement("div");e.className="warn";e.innerHTML=m.hits.map(h=>"<b>"+h[0]+"</b><br>"+h[3]+"<ul>"+h[4].map(x=>"<li>"+x+"</li>").join("")+"</ul>").join("")||"No specific pattern, but the learned model rates it risky.";a.after?0:0;d.append(e)}
+   if(m.open){const e=document.createElement("div");e.className="warn";e.innerHTML=m.hits.map(h=>"<b>"+esc(h[0])+"</b><br>"+esc(h[3])+"<ul>"+(Array.isArray(h[4])?h[4]:[]).map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>").join("")||"No specific pattern, but the learned model rates it risky.";d.append(e)}
    B(m.saved?"Saved":"Save evidence",()=>save(i));
   }
   B("Report: harmful",()=>report(i,"harmful"),"d");B("Report: safe",()=>report(i,"safe"));
   d.append(a);c.prepend(d)});}
 function ask(i){$("pw2").value="";$("err").textContent="";$("dlg").dataset.i=i;$("dlg").showModal();$("pw2").focus()}
 async function h(s,salt){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
-$("pwSet").onclick=async()=>{const v=$("pw1").value;if(v.length<4)return;const salt=crypto.randomUUID();pw={salt,hash:await h(v,salt)};store.set("sl_pw",JSON.stringify(pw));$("setup").hidden=true};
+$("pwSet").onclick=async()=>{const v=$("pw1").value;if(v.length<4){$("pw1").value="";$("pw1").placeholder="Use 4 or more characters";$("pw1").focus();return}const salt=crypto.randomUUID();pw={salt,hash:await h(v,salt)};store.set("sl_pw",JSON.stringify(pw));$("setup").hidden=true};
 $("ok").onclick=async e=>{e.preventDefault();if(!pw)pw=JSON.parse(store.get("sl_pw")||"null");
  if(!pw||await h($("pw2").value,pw.salt)!==pw.hash){$("err").textContent="Wrong password.";return}
- const i=+$("dlg").dataset.i;$("dlg").close();msgs[i].shown=true;render();setTimeout(()=>{msgs[i].shown=false;render()},20000)};
+ const i=+$("dlg").dataset.i;$("dlg").close();const mm=msgs[i];mm.shown=true;render();clearTimeout(mm.hideT);mm.hideT=setTimeout(()=>{mm.shown=false;render()},20000)};
 $("no").onclick=()=>$("dlg").close();
 $("pw2").onkeydown=e=>{if(e.key==="Enter")$("ok").click()};
 function receive(t){t=t.trim();if(!t)return;const r=scan(t);const m={text:t,ts:Date.now(),...r};msgs.push(m);render();if(!r.hidden)aiCheck(m)}
@@ -67,7 +69,8 @@ async function save(i){const m=msgs[i];if(m.saved)return;m.saved=true;const rec=
 function drawV(){$("vault").innerHTML=vault.length?"":"<div class='mu'>Nothing saved yet.</div>";vault.forEach((v,k)=>{const d=document.createElement("div");d.className="msg";d.innerHTML="<div class='from'></div><div class='mono'></div>";d.firstChild.textContent=v.ts+" · "+v.cats;d.lastChild.textContent="SHA-256 "+v.hash;const b=document.createElement("button");b.textContent="Remove";b.onclick=()=>{vault.splice(k,1);store.set("sl_v",JSON.stringify(vault));drawV()};d.append(b);$("vault").append(d)})}
 $("exp").onclick=async()=>{if(!vault.length){$("sum").textContent="Save at least one message first.";return}
  const s="SAFELENS EVIDENCE SUMMARY\nFor: "+$("to").value+"\nGenerated: "+new Date().toISOString()+"\n\n"+vault.map((v,k)=>(k+1)+". "+v.ts+" ["+v.cats+"]\n   \""+v.text+"\"\n   hash "+v.hash).join("\n")+"\n\nPlatform-first reporting applies for harassment; serious harms can go straight to osc.gov.sg.";
- $("sum").textContent=s;try{const dl=await claude.use("downloads");if(dl)await dl.save({filename:"safelens-evidence.txt",data:s})}catch(e){}};
+ $("sum").textContent=s;let saved=false;try{const dl=await claude.use("downloads");if(dl){await dl.save({filename:"safelens-evidence.txt",data:s});saved=true}}catch(e){}
+ if(!saved){const u=URL.createObjectURL(new Blob([s],{type:"text/plain"})),l=document.createElement("a");l.href=u;l.download="safelens-evidence.txt";document.body.append(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}};
 async function report(i,label){const m=msgs[i],r={t:tok(m.text).join(" "),label,ts:Date.now()};reports.push(r);
  try{if(db)await db.collection("reports").doc(crypto.randomUUID()).set(r);else store.set("sl_r",JSON.stringify(reports))}catch(e){store.set("sl_r",JSON.stringify(reports))}
  m.rescan=1;const x=scan(m.text);Object.assign(m,x);status();render()}
